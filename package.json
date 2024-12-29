@@ -14,8 +14,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "repotollm.helloWorld",
-        "title": "Hello World"
+        "command": "repotollm.repoToLLM",
+        "title": "Repo To LLM"
       }
     ]
   },

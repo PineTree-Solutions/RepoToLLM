@@ -1,26 +1,66 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
+import * as fs from "fs";
+import * as path from "path";
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+function getRepoStructureWithGitignore(folderPath: string): string {
+  const gitignoreFile = path.join(folderPath, ".gitignore");
+  const structure: string[] = [];
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "repotollm" is now active!');
+  let gitignorePatterns: string[] = [];
+  if (fs.existsSync(gitignoreFile)) {
+    const gitignoreContent = fs.readFileSync(gitignoreFile, "utf-8");
+    gitignorePatterns = gitignoreContent
+      .split("\n")
+      .filter((line) => line.trim() && !line.startsWith("#"));
+  }
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('repotollm.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from RepoToLLM!');
-	});
+  const walkDirectory = (dir: string, prefix = "") => {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    entries.forEach((entry) => {
+      const entryPath = path.join(dir, entry.name);
+      const relativePath = path.relative(folderPath, entryPath);
 
-	context.subscriptions.push(disposable);
+      // Skip .gitignore patterns
+      if (gitignorePatterns.some((pattern) => relativePath.includes(pattern)))
+        return;
+
+      if (entry.isDirectory()) {
+        structure.push(`${prefix}${entry.name}/`);
+        walkDirectory(entryPath, prefix + "    ");
+      } else {
+        structure.push(`${prefix}${entry.name}`);
+      }
+    });
+  };
+
+  walkDirectory(folderPath);
+  return structure.join("\n");
 }
 
-// This method is called when your extension is deactivated
+export function activate(context: vscode.ExtensionContext) {
+  const disposable = vscode.commands.registerCommand(
+    "repotollm.repoToLLM",
+    async () => {
+      const chatBackFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+      if (!chatBackFolder) {
+        vscode.window.showErrorMessage(
+          "No folder is opened. Please open a folder."
+        );
+        return;
+      }
+
+      const repoStructure = getRepoStructureWithGitignore(chatBackFolder);
+      const docContent = `# Chat Back Repository\n\n## Repo Structure\n\`\`\`\n${repoStructure}\n\`\`\`\n\n`;
+
+      const docPath = path.join(chatBackFolder, "REPO_TO_LLM.md");
+      fs.writeFileSync(docPath, docContent, "utf-8");
+
+      vscode.window.showInformationMessage(`Documentation created: ${docPath}`);
+    }
+  );
+
+  context.subscriptions.push(disposable);
+}
+
 export function deactivate() {}
