@@ -2,7 +2,7 @@
   "name": "repotollm",
   "displayName": "RepoToLLM",
   "description": "RepoToLLM transforms Python project code and structure into Markdown, ready for easy copy-paste into ChatGPT, Claude, or other LLMs, boosting productivity and simplifying AI-driven development workflows.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "PineTree-Solutions",
   "icon": "icon.png",
   "engines": {
