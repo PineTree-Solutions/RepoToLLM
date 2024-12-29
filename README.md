@@ -1,71 +1,97 @@
-# repotollm README
+# RepoToLLM
 
-This is the README for your extension "repotollm". After writing up a brief description, we recommend including the following sections.
-
-## Features
-
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+RepoToLLM is a Visual Studio Code extension designed specifically for Python projects to help you export your repository structure and code snippets into a Markdown file that an LLM (Large Language Model) can easily understand. It automates the creation of documentation for your repository, making it easier to integrate your codebase with AI tools like ChatGPT, Claude, Gemini, and more.
 
 ---
 
-## Following extension guidelines
+## Benefits
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+- **Optimized for AI**: Markdown formatting ensures that LLMs can parse and understand your repository more effectively.
+- **Convert Code to LLM-Understandable Text**: Streamline your workflow by transforming your codebase into an LLM-ingestible format.
+- **Code to GPT**: Quickly prepare your code and repository structure for tools like GPT-based models, enabling faster AI-driven development.
+- **Ingest Code to LLM**: Simplify the process of making your repository accessible to AI tools.
+- **Copy and Paste Friendly**: The generated Markdown file can be directly copied and pasted into tools like ChatGPT, Claude, Gemini, or any other LLM to easily develop and enhance workflows.
+- **Streamlined Workflow**: Automatically document your project, enhancing productivity and focus.
+- **Collaboration Ready**: Share structured, AI-friendly documentation with your team or leverage it as input for AI tools to improve collaboration.
+- **Boost Productivity**: A powerful tool to make your development process faster and more efficient.
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+---
 
-## Working with Markdown
+## Features
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
+### 1. Export Repository Structure
+- Automatically generates the directory structure of your repository, skipping unnecessary files and folders based on `.gitignore` and common exclusions.
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
+### 2. Generate Markdown Documentation
+- Creates a `REPO_TO_LLM.md` file in your repository root with:
+  - **Repo Structure**: A clear hierarchical structure of the repository.
+  - **Repo Code**: Code snippets formatted in Markdown for easy readability by LLMs.
 
-## For more information
+### 3. Enhance Development with AI
+- The generated Markdown file is optimized for use with LLMs, which understand Markdown better, leading to improved context comprehension and faster responses.
+- Copy and paste the Markdown file into any LLM tool to:
+  - Get quick insights into your repository.
+  - Accelerate development workflows.
+  - Make project collaboration easier.
 
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+---
 
-**Enjoy!**
+## Installation
+
+1. Install the extension from the VS Code Marketplace or clone this repository.
+2. Open the command palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on macOS) and run `Install from VSIX` if you have a local copy of the extension.
+
+---
+
+## Usage
+
+1. Open your Python project in VS Code.
+2. Run the command `Repo To LLM` from the command palette.
+3. The extension generates a `REPO_TO_LLM.md` file in the root of your repository.
+4. Use this Markdown file to:
+   - Share your repository overview with team members.
+   - Analyze your codebase using AI tools.
+   - Copy and paste into LLMs like ChatGPT, Claude, or Gemini to enhance development.
+   - Develop faster and more efficiently.
+
+---
+
+## Known Issues
+
+- **Large Repositories**: May take longer to process for repositories with a large number of files and directories.
+- **Pattern Matching**: `.gitignore` patterns may require refinement for advanced glob patterns.
+
+---
+
+## Extension Settings
+
+This extension does not introduce additional settings.
+
+---
+
+## Release Notes
+
+### 0.0.1
+- Initial release of RepoToLLM.
+- Export repository structure and selected code snippets to a Markdown file.
+
+---
+
+## Contributing
+
+We welcome contributions! If you encounter issues or have feature requests, feel free to open an issue or submit a pull request.
+
+---
+
+## License
+
+This project is licensed under the MIT License. See the `LICENSE` file for details.
+
+---
+
+## Contact
+
+For questions, feedback, or support, please reach out via the [GitHub repository](https://github.com/PineTree-Solutions/RepoToLLM).
+
+**Enjoy using RepoToLLM to bridge the gap between your codebase and AI workflows!**
+
