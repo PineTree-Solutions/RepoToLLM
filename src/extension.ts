@@ -6,6 +6,9 @@ function getRepoStructureWithGitignore(folderPath: string): string {
   const gitignoreFile = path.join(folderPath, ".gitignore");
   const structure: string[] = [];
 
+  // Define the exclusion list
+  const exclusions = [".git", ".idea", "__pycache__"];
+
   let gitignorePatterns: string[] = [];
   if (fs.existsSync(gitignoreFile)) {
     const gitignoreContent = fs.readFileSync(gitignoreFile, "utf-8");
@@ -20,7 +23,8 @@ function getRepoStructureWithGitignore(folderPath: string): string {
       const entryPath = path.join(dir, entry.name);
       const relativePath = path.relative(folderPath, entryPath);
 
-      // Skip .gitignore patterns
+      // Skip exclusions and `.gitignore` patterns
+      if (exclusions.includes(entry.name)) return;
       if (gitignorePatterns.some((pattern) => relativePath.includes(pattern)))
         return;
 
@@ -50,8 +54,11 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
+      // Automatically get the repo name from the folder
+      const repoName = path.basename(chatBackFolder);
+
       const repoStructure = getRepoStructureWithGitignore(chatBackFolder);
-      const docContent = `# Chat Back Repository\n\n## Repo Structure\n\`\`\`\n${repoStructure}\n\`\`\`\n\n`;
+      const docContent = `# ${repoName} Repository\n\n## Repo Structure\n\`\`\`\n${repoStructure}\n\`\`\`\n\n`;
 
       const docPath = path.join(chatBackFolder, "REPO_TO_LLM.md");
       fs.writeFileSync(docPath, docContent, "utf-8");
