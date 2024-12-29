@@ -42,15 +42,18 @@ function getRepoStructureWithGitignore(folderPath: string): string[] {
 }
 
 function getRepoCodeContent(folderPath: string): string {
-  const includeFilesToPrint = ["requirements.txt", "*.py"];
+  const includeFilesToPrint = ["requirements.txt", "*.py", "dockerfile"];
   const codeSection: string[] = [];
 
   const matchesIncludePattern = (fileName: string) => {
     return includeFilesToPrint.some((pattern) => {
-      if (pattern.startsWith("*.") && fileName.endsWith(pattern.slice(1))) {
+      if (
+        pattern.startsWith("*.") &&
+        fileName.toLowerCase().endsWith(pattern.slice(1).toLowerCase())
+      ) {
         return true;
       }
-      return pattern === fileName;
+      return fileName.toLowerCase() === pattern.toLowerCase();
     });
   };
 
