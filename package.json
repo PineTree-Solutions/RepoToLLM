@@ -11,6 +11,10 @@
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:PineTree-Solutions/RepoToLLM.git"
+  },
   "contributes": {
     "commands": [
       {
