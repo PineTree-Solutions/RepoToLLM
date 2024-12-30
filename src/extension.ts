@@ -2,31 +2,48 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 
+// --------------------------------------------------------------------------------
+// Helper: Recursively build a repo structure, skipping certain files and directories
+// --------------------------------------------------------------------------------
 function getRepoStructureWithGitignore(folderPath: string): string[] {
+  // We'll also skip them even if they're not in .gitignore
+  const exclusions = [".git", ".idea", "__pycache__", "node_modules", ".code"];
+
+  // Build an array of patterns from .gitignore (if it exists)
   const gitignoreFile = path.join(folderPath, ".gitignore");
-  const structure: string[] = [];
-
-  // Define the exclusion list
-  const exclusions = [".git", ".idea", "__pycache__"];
-
   let gitignorePatterns: string[] = [];
   if (fs.existsSync(gitignoreFile)) {
     const gitignoreContent = fs.readFileSync(gitignoreFile, "utf-8");
     gitignorePatterns = gitignoreContent
       .split("\n")
-      .filter((line) => line.trim() && !line.startsWith("#"));
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith("#"));
   }
 
+  const structure: string[] = [];
+
+  // Recursive directory walk
   const walkDirectory = (dir: string, prefix = "") => {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
-    entries.forEach((entry) => {
+
+    for (const entry of entries) {
+      // Skip hidden files/folders that start with "."
+      if (entry.name.startsWith(".")) {
+        continue;
+      }
+
       const entryPath = path.join(dir, entry.name);
       const relativePath = path.relative(folderPath, entryPath);
 
-      // Skip exclusions and `.gitignore` patterns
-      if (exclusions.includes(entry.name)) return;
-      if (gitignorePatterns.some((pattern) => relativePath.includes(pattern)))
-        return;
+      // Skip items explicitly in exclusions
+      if (exclusions.includes(entry.name)) {
+        continue;
+      }
+
+      // Skip items from .gitignore (naive check: pattern found in relative path)
+      if (gitignorePatterns.some((pattern) => relativePath.includes(pattern))) {
+        continue;
+      }
 
       if (entry.isDirectory()) {
         structure.push(`${prefix}${entry.name}/`);
@@ -34,38 +51,64 @@ function getRepoStructureWithGitignore(folderPath: string): string[] {
       } else {
         structure.push(`${prefix}${entry.name}`);
       }
-    });
+    }
   };
 
   walkDirectory(folderPath);
   return structure;
 }
 
+// --------------------------------------------------------------------------------
+// Helper: Collect file contents for specified files (Python, JS, TS, HTML, CSS, etc.)
+// --------------------------------------------------------------------------------
 function getRepoCodeContent(folderPath: string): string {
-  const includeFilesToPrint = ["requirements.txt", "*.py", "dockerfile"];
-  const codeSection: string[] = [];
+  // Which file patterns should we include for code output
+  const includeFilesToPrint = [
+    "requirements.txt",
+    "dockerfile", // matches Dockerfile as well (case-insensitive exact match)
+    "*.py",
+    "*.js",
+    "*.jsx",
+    "*.ts",
+    "*.tsx",
+    "*.html",
+    "*.css",
+  ];
 
-  const matchesIncludePattern = (fileName: string) => {
+  // Determine whether a file name matches any of our patterns
+  const matchesIncludePattern = (fileName: string): boolean => {
     return includeFilesToPrint.some((pattern) => {
-      if (
-        pattern.startsWith("*.") &&
-        fileName.toLowerCase().endsWith(pattern.slice(1).toLowerCase())
-      ) {
-        return true;
+      // If it's a wildcard pattern, like "*.py", check the extension
+      if (pattern.startsWith("*.")) {
+        // e.g., "*.py" -> ".py"
+        const ext = pattern.slice(1).toLowerCase();
+        return fileName.toLowerCase().endsWith(ext);
       }
+      // Otherwise do a direct (case-insensitive) comparison
       return fileName.toLowerCase() === pattern.toLowerCase();
     });
   };
 
+  const codeSection: string[] = [];
+
+  // Recursive directory walk to gather code content
   const walkDirectoryForCode = (dir: string) => {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
-    entries.forEach((entry) => {
+
+    for (const entry of entries) {
+      // Skip hidden files/folders that start with "."
+      if (entry.name.startsWith(".")) {
+        continue;
+      }
+
       const entryPath = path.join(dir, entry.name);
       const relativePath = path.relative(folderPath, entryPath);
 
       if (entry.isDirectory()) {
+        // Descend into subdirectories
         walkDirectoryForCode(entryPath);
       } else if (matchesIncludePattern(entry.name)) {
+        // If the file matches our "include" patterns, read and store its content
         try {
           const content = fs.readFileSync(entryPath, "utf-8");
           codeSection.push(`### ${relativePath}\n\`\`\`\n${content}\n\`\`\`\n`);
@@ -73,39 +116,56 @@ function getRepoCodeContent(folderPath: string): string {
           console.error(`Failed to read file ${entryPath}:`, err);
         }
       }
-    });
+    }
   };
 
   walkDirectoryForCode(folderPath);
   return codeSection.join("\n");
 }
 
+// --------------------------------------------------------------------------------
+// Main extension activation
+// --------------------------------------------------------------------------------
 export function activate(context: vscode.ExtensionContext) {
   const disposable = vscode.commands.registerCommand(
     "repotollm.repoToLLM",
     async () => {
-      const chatBackFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      // Get the currently opened workspace folder
+      const workspaceFolder =
+        vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
-      if (!chatBackFolder) {
+      if (!workspaceFolder) {
         vscode.window.showErrorMessage(
           "No folder is opened. Please open a folder."
         );
         return;
       }
 
-      // Automatically get the repo name from the folder
-      const repoName = path.basename(chatBackFolder);
+      // The repo name is derived from the folder name
+      const repoName = path.basename(workspaceFolder);
 
-      const repoStructure = getRepoStructureWithGitignore(chatBackFolder);
-      const repoCode = getRepoCodeContent(chatBackFolder);
+      // Grab the structure and code snippets
+      const repoStructure = getRepoStructureWithGitignore(workspaceFolder);
+      const repoCode = getRepoCodeContent(workspaceFolder);
 
-      const docContent = `# ${repoName} Repository\n\n## Repo Structure\n\`\`\`\n${repoStructure.join(
-        "\n"
-      )}\n\`\`\`\n\n## Repo Code\n\n${repoCode}`;
+      // Prepare markdown content
+      const docContent = `# ${repoName} Repository
 
-      const docPath = path.join(chatBackFolder, "REPO_TO_LLM.md");
+## Repo Structure
+\`\`\`
+${repoStructure.join("\n")}
+\`\`\`
+
+## Repo Code
+
+${repoCode}
+`;
+
+      // Write out to REPO_TO_LLM.md in the root folder
+      const docPath = path.join(workspaceFolder, "REPO_TO_LLM.md");
       fs.writeFileSync(docPath, docContent, "utf-8");
 
+      // Show a completion message
       vscode.window.showInformationMessage(`Documentation created: ${docPath}`);
     }
   );
@@ -113,4 +173,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(disposable);
 }
 
+// --------------------------------------------------------------------------------
+// Deactivate (no-op for this extension)
+// --------------------------------------------------------------------------------
 export function deactivate() {}
