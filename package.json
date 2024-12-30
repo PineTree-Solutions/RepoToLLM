@@ -26,7 +26,16 @@
         "command": "repotollm.exportSelected",
         "title": "Export Selected to Markdown"
       }
-    ]
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "repotollm.exportSelected",
+          "when": "resourceIsFolder || resourceFilename",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
