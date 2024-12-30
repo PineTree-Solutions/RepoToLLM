@@ -2,7 +2,7 @@
   "name": "repotollm",
   "displayName": "RepoToLLM",
   "description": "Export project/reposity code into Markdown with a single command, ready for easy copy-paste into ChatGPT, Claude, or other LLMs, boosting productivity and simplifying AI-driven development workflows.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "PineTree-Solutions",
   "icon": "icon.png",
   "engines": {
