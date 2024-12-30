@@ -6,8 +6,16 @@ import * as path from "path";
 // Helper: Recursively build a repo structure, skipping certain files and directories
 // --------------------------------------------------------------------------------
 function getRepoStructureWithGitignore(folderPath: string): string[] {
-  // We'll also skip them even if they're not in .gitignore
-  const exclusions = [".git", ".idea", "__pycache__", "node_modules", ".code"];
+  // We'll skip these explicitly even if they're not in .gitignore
+  // (Added 'venv' to avoid including virtual env files)
+  const exclusions = [
+    ".git",
+    ".idea",
+    "__pycache__",
+    "node_modules",
+    ".code",
+    "venv",
+  ];
 
   // Build an array of patterns from .gitignore (if it exists)
   const gitignoreFile = path.join(folderPath, ".gitignore");
@@ -32,15 +40,15 @@ function getRepoStructureWithGitignore(folderPath: string): string[] {
         continue;
       }
 
-      const entryPath = path.join(dir, entry.name);
-      const relativePath = path.relative(folderPath, entryPath);
-
-      // Skip items explicitly in exclusions
+      // Skip explicitly named exclusions
       if (exclusions.includes(entry.name)) {
         continue;
       }
 
-      // Skip items from .gitignore (naive check: pattern found in relative path)
+      const entryPath = path.join(dir, entry.name);
+      const relativePath = path.relative(folderPath, entryPath);
+
+      // Skip .gitignore patterns (simple "contains" check in the relative path)
       if (gitignorePatterns.some((pattern) => relativePath.includes(pattern))) {
         continue;
       }
@@ -65,7 +73,7 @@ function getRepoCodeContent(folderPath: string): string {
   // Which file patterns should we include for code output
   const includeFilesToPrint = [
     "requirements.txt",
-    "dockerfile", // matches Dockerfile as well (case-insensitive exact match)
+    "dockerfile", // matches "Dockerfile" as well (case-insensitive exact match)
     "*.py",
     "*.js",
     "*.jsx",
@@ -73,6 +81,16 @@ function getRepoCodeContent(folderPath: string): string {
     "*.tsx",
     "*.html",
     "*.css",
+  ];
+
+  // We'll skip these explicitly (same as above, including 'venv')
+  const exclusions = [
+    ".git",
+    ".idea",
+    "__pycache__",
+    "node_modules",
+    ".code",
+    "venv",
   ];
 
   // Determine whether a file name matches any of our patterns
@@ -98,6 +116,11 @@ function getRepoCodeContent(folderPath: string): string {
     for (const entry of entries) {
       // Skip hidden files/folders that start with "."
       if (entry.name.startsWith(".")) {
+        continue;
+      }
+
+      // Skip explicitly named exclusions
+      if (exclusions.includes(entry.name)) {
         continue;
       }
 
