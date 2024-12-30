@@ -1,18 +1,37 @@
-# RepoToLLM
+# RepoToLLM (Export Repo To Markdown)
 
-A Visual Studio Code extension designed specifically for Python projects to help you export your repository structure and code snippets into a Markdown file that an LLM (Large Language Model) can easily understand. It automates the creation of documentation for your repository, making it easier to integrate your codebase with AI tools like ChatGPT, Claude, Gemini, and more.
+Export Repository to a single markdown file.
+Copy paste the file once generated into LLMs like ChatGPT, Claude, Gemini, or any other AI tool. They can easily understand it and help you develop faster.
+The markdown file contains:
+
+- A detailed repository structure overview.
+- A list of all files with their respective paths.
+- Complete code content for each file.
+
+---
+
+## Usage
+
+1. Open your Python project in VS Code.
+2. Run the command `Repo To LLM` from the command palette.
+3. The extension generates a `REPO_TO_LLM.md` file in the root of your repository.
+4. Copy and paste the content from the `REPO_TO_LLM.md` file into LLMs like ChatGPT, Claude, or Gemini to enhance development:
+   - Copy the content of the file and paste it into any LLM provider (ChatGPT, Claude, Gemini...).
+   - Once you paste the code, ask any question about it.
+   - Develop faster and more efficiently.
+   - Fix bugs faster.
+   - Share your repository overview with team members.
 
 ---
 
 ## Benefits
 
+- **Copy and Paste Friendly**: The generated Markdown file can be directly copied and pasted into tools like ChatGPT, Claude, Gemini, or any other LLM to easily develop and enhance workflows.
 - **Optimized for AI**: Markdown formatting ensures that LLMs can parse and understand your repository more effectively.
+- **Provide Context When Developing With AI**: Use the markdown generated to provide context to LLMS like ChatGPT, Claude, Gemini or other LLM providers when developing.
 - **Convert Code to LLM-Understandable Text**: Streamline your workflow by transforming your codebase into an LLM-ingestible format.
 - **Code to GPT**: Quickly prepare your code and repository structure for tools like GPT-based models, enabling faster AI-driven development.
 - **Ingest Code to LLM**: Simplify the process of making your repository accessible to AI tools.
-- **Copy and Paste Friendly**: The generated Markdown file can be directly copied and pasted into tools like ChatGPT, Claude, Gemini, or any other LLM to easily develop and enhance workflows.
-- **Streamlined Workflow**: Automatically document your project, enhancing productivity and focus.
-- **Collaboration Ready**: Share structured, AI-friendly documentation with your team or leverage it as input for AI tools to improve collaboration.
 - **Boost Productivity**: A powerful tool to make your development process faster and more efficient.
 
 ---
@@ -34,32 +53,14 @@ A Visual Studio Code extension designed specifically for Python projects to help
 - The generated Markdown file is optimized for use with LLMs, which understand Markdown better, leading to improved context comprehension and faster responses.
 - Copy and paste the Markdown file into any LLM tool to:
   - Get quick insights into your repository.
-  - Accelerate development workflows.
-  - Make project collaboration easier.
+  - Accelerate development cycles.
+  - Fix bugs faster
 
 ---
 
 ## Installation
 
-### Install the extension from the VS Code Marketplace (RepoToLLM)
-
-## Usage
-
-1. Open your Python project in VS Code.
-2. Run the command `Repo To LLM` from the command palette.
-3. The extension generates a `REPO_TO_LLM.md` file in the root of your repository.
-4. Use this Markdown file to:
-   - Share your repository overview with team members.
-   - Analyze your codebase using AI tools.
-   - Copy and paste into LLMs like ChatGPT, Claude, or Gemini to enhance development.
-   - Develop faster and more efficiently.
-
----
-
-## Known Issues
-
-- **Large Repositories**: May take longer to process for repositories with a large number of files and directories.
-- **Pattern Matching**: `.gitignore` patterns may require refinement for advanced glob patterns.
+Install the extension from the VS Code Marketplace (RepoToLLM)
 
 ---
 
@@ -89,4 +90,4 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 
 For questions, feedback, or support, please reach out via the [GitHub repository](https://github.com/PineTree-Solutions/RepoToLLM).
 
-**Enjoy using RepoToLLM to bridge the gap between your codebase and AI workflows!**
+**Enjoy using RepoToLLM to bridge the gap between your codebase and any LLM provider!**
