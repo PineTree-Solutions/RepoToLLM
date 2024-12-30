@@ -1,202 +1,242 @@
-import * as vscode from "vscode";
-import * as fs from "fs";
-import * as path from "path";
+import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
+import ignore, { Ignore } from 'ignore';
 
-// --------------------------------------------------------------------------------
-// Helper: Recursively build a repo structure, skipping certain files and directories
-// --------------------------------------------------------------------------------
-function getRepoStructureWithGitignore(folderPath: string): string[] {
-  // We'll skip these explicitly even if they're not in .gitignore
-  // (Added 'venv' to avoid including virtual env files)
-  const exclusions = [
-    ".git",
-    ".idea",
-    "__pycache__",
-    "node_modules",
-    ".code",
-    "venv",
-  ];
+export function activate(context: vscode.ExtensionContext) {
+  let exportAll = vscode.commands.registerCommand('repotollm.repoAll', () => {
+    exportCodebase();
+  });
 
-  // Build an array of patterns from .gitignore (if it exists)
-  const gitignoreFile = path.join(folderPath, ".gitignore");
-  let gitignorePatterns: string[] = [];
-  if (fs.existsSync(gitignoreFile)) {
-    const gitignoreContent = fs.readFileSync(gitignoreFile, "utf-8");
-    gitignorePatterns = gitignoreContent
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith("#"));
+  let exportSelected = vscode.commands.registerCommand('repotollm.exportSelected', (uri: vscode.Uri, uris: vscode.Uri[]) => {
+    const selectedUris = uris && uris.length > 0 ? uris : [uri];
+    exportSelectedFiles(selectedUris);
+  });
+
+  context.subscriptions.push(exportAll);
+  context.subscriptions.push(exportSelected);
+}
+
+async function exportCodebase() {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders) {
+    vscode.window.showErrorMessage('No workspace folder open.');
+    return;
+  }
+  const rootPath = workspaceFolders[0].uri.fsPath;
+
+  const files = await getAllFiles(rootPath);
+  const markdownContent = await generateMarkdown(files, rootPath);
+  saveMarkdownFile(markdownContent);
+}
+
+async function exportSelectedFiles(uris: vscode.Uri[]) {
+  const files = await getFilesFromUris(uris);
+  if (files.length === 0) {
+    vscode.window.showErrorMessage('No files to export.');
+    return;
+  }
+  const rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
+  const markdownContent = await generateMarkdown(files, rootPath);
+  saveMarkdownFile(markdownContent);
+}
+
+async function getAllFiles(dir: string): Promise<string[]> {
+  const ig = createIgnoreInstance(dir);
+  const files: string[] = [];
+
+  async function traverse(currentDir: string) {
+    const entries = await fs.promises.readdir(currentDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(currentDir, entry.name);
+      const relativePath = path.relative(dir, fullPath);
+
+      if (ig.ignores(relativePath) || isLargeFile(entry.name)) {
+        continue;
+      }
+
+      if (entry.isDirectory()) {
+        // Check if directory is ignored
+        if (ig.ignores(relativePath + '/')) {
+          continue;
+        }
+        await traverse(fullPath);
+      } else {
+        files.push(fullPath);
+      }
+    }
   }
 
-  const structure: string[] = [];
-
-  // Recursive directory walk
-  const walkDirectory = (dir: string, prefix = "") => {
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-
-    for (const entry of entries) {
-      // Skip hidden files/folders that start with "."
-      if (entry.name.startsWith(".")) {
-        continue;
-      }
-
-      // Skip explicitly named exclusions
-      if (exclusions.includes(entry.name)) {
-        continue;
-      }
-
-      const entryPath = path.join(dir, entry.name);
-      const relativePath = path.relative(folderPath, entryPath);
-
-      // Skip .gitignore patterns (simple "contains" check in the relative path)
-      if (gitignorePatterns.some((pattern) => relativePath.includes(pattern))) {
-        continue;
-      }
-
-      if (entry.isDirectory()) {
-        structure.push(`${prefix}${entry.name}/`);
-        walkDirectory(entryPath, prefix + "    ");
-      } else {
-        structure.push(`${prefix}${entry.name}`);
-      }
-    }
-  };
-
-  walkDirectory(folderPath);
-  return structure;
+  await traverse(dir);
+  return files;
 }
 
-// --------------------------------------------------------------------------------
-// Helper: Collect file contents for specified files (Python, JS, TS, HTML, CSS, etc.)
-// --------------------------------------------------------------------------------
-function getRepoCodeContent(folderPath: string): string {
-  // Which file patterns should we include for code output
-  const includeFilesToPrint = [
-    "requirements.txt",
-    "dockerfile", // matches "Dockerfile" as well (case-insensitive exact match)
-    "*.py",
-    "*.js",
-    "*.jsx",
-    "*.ts",
-    "*.tsx",
-    "*.html",
-    "*.css",
-  ];
+async function getFilesFromUris(uris: vscode.Uri[]): Promise<string[]> {
+  const files: string[] = [];
+  const rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
+  const ig = createIgnoreInstance(rootPath);
 
-  // We'll skip these explicitly (same as above, including 'venv')
-  const exclusions = [
-    ".git",
-    ".idea",
-    "__pycache__",
-    "node_modules",
-    ".code",
-    "venv",
-  ];
+  async function processUri(currentUri: vscode.Uri) {
+    const stat = await vscode.workspace.fs.stat(currentUri);
+    const relativePath = vscode.workspace.asRelativePath(currentUri);
 
-  // Determine whether a file name matches any of our patterns
-  const matchesIncludePattern = (fileName: string): boolean => {
-    return includeFilesToPrint.some((pattern) => {
-      // If it's a wildcard pattern, like "*.py", check the extension
-      if (pattern.startsWith("*.")) {
-        // e.g., "*.py" -> ".py"
-        const ext = pattern.slice(1).toLowerCase();
-        return fileName.toLowerCase().endsWith(ext);
-      }
-      // Otherwise do a direct (case-insensitive) comparison
-      return fileName.toLowerCase() === pattern.toLowerCase();
-    });
-  };
-
-  const codeSection: string[] = [];
-
-  // Recursive directory walk to gather code content
-  const walkDirectoryForCode = (dir: string) => {
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-
-    for (const entry of entries) {
-      // Skip hidden files/folders that start with "."
-      if (entry.name.startsWith(".")) {
-        continue;
-      }
-
-      // Skip explicitly named exclusions
-      if (exclusions.includes(entry.name)) {
-        continue;
-      }
-
-      const entryPath = path.join(dir, entry.name);
-      const relativePath = path.relative(folderPath, entryPath);
-
-      if (entry.isDirectory()) {
-        // Descend into subdirectories
-        walkDirectoryForCode(entryPath);
-      } else if (matchesIncludePattern(entry.name)) {
-        // If the file matches our "include" patterns, read and store its content
-        try {
-          const content = fs.readFileSync(entryPath, "utf-8");
-          codeSection.push(`### ${relativePath}\n\`\`\`\n${content}\n\`\`\`\n`);
-        } catch (err) {
-          console.error(`Failed to read file ${entryPath}:`, err);
-        }
-      }
+    if (ig.ignores(relativePath) || isLargeFile(path.basename(currentUri.fsPath))) {
+      return;
     }
-  };
 
-  walkDirectoryForCode(folderPath);
-  return codeSection.join("\n");
-}
-
-// --------------------------------------------------------------------------------
-// Main extension activation
-// --------------------------------------------------------------------------------
-export function activate(context: vscode.ExtensionContext) {
-  const disposable = vscode.commands.registerCommand(
-    "repotollm.repoToLLM",
-    async () => {
-      // Get the currently opened workspace folder
-      const workspaceFolder =
-        vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-
-      if (!workspaceFolder) {
-        vscode.window.showErrorMessage(
-          "No folder is opened. Please open a folder."
-        );
+    if (stat.type === vscode.FileType.Directory) {
+      // Check if directory is ignored
+      if (ig.ignores(relativePath + '/')) {
         return;
       }
-
-      // The repo name is derived from the folder name
-      const repoName = path.basename(workspaceFolder);
-
-      // Grab the structure and code snippets
-      const repoStructure = getRepoStructureWithGitignore(workspaceFolder);
-      const repoCode = getRepoCodeContent(workspaceFolder);
-
-      // Prepare markdown content
-      const docContent = `# ${repoName} Repository
-
-## Repo Structure
-\`\`\`
-${repoStructure.join("\n")}
-\`\`\`
-
-## Repo Code
-
-${repoCode}
-`;
-
-      // Write out to REPO_TO_LLM.md in the root folder
-      const docPath = path.join(workspaceFolder, "REPO_TO_LLM.md");
-      fs.writeFileSync(docPath, docContent, "utf-8");
-
-      // Show a completion message
-      vscode.window.showInformationMessage(`Documentation created: ${docPath}`);
+      const entries = await vscode.workspace.fs.readDirectory(currentUri);
+      for (const [name, fileType] of entries) {
+        const childUri = vscode.Uri.joinPath(currentUri, name);
+        await processUri(childUri);
+      }
+    } else if (stat.type === vscode.FileType.File) {
+      files.push(currentUri.fsPath);
     }
-  );
+  }
 
-  context.subscriptions.push(disposable);
+  for (const uri of uris) {
+    await processUri(uri);
+  }
+
+  return files;
 }
 
-// --------------------------------------------------------------------------------
-// Deactivate (no-op for this extension)
-// --------------------------------------------------------------------------------
+function createIgnoreInstance(rootDir: string): Ignore {
+  const ig = ignore();
+  const gitignorePath = path.join(rootDir, '.gitignore');
+  if (fs.existsSync(gitignorePath)) {
+    const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
+    ig.add(gitignoreContent);
+  }
+  // Add default ignored directories and files
+  ig.add([
+    'node_modules/',
+    'build/',
+    'out/',
+    'dist/',
+    '.git/',
+    '.svn/',
+    '.hg/',
+    '.vscode/',
+    '.idea/',
+    'coverage/',
+    'logs/',
+    '*.log',
+    '*.exe',
+    '*.dll',
+    '*.bin',
+    '*.lock',
+    '*.zip',
+    '*.tar',
+    '*.tar.gz',
+    '*.tgz',
+    '*.jar',
+    '*.class',
+    '*.pyc',
+    '__pycache__/'
+  ]);
+  return ig;
+}
+
+function isLargeFile(fileName: string): boolean {
+  const largeFiles = ['package-lock.json', 'yarn.lock'];
+  return largeFiles.includes(fileName);
+}
+
+function isSupportedFile(fileName: string): boolean {
+  const supportedExtensions = [
+    '.js', '.jsx', '.ts', '.tsx', '.html', '.css', '.scss', '.json', '.md', '.txt',
+    '.py', '.java', '.c', '.cpp', '.cs', '.rb', '.go', '.php', '.sh', '.xml',
+    '.yaml', '.yml', '.ini', '.bat', '.sql', '.rs', '.swift', '.kt', '.dart',
+    '.lua', '.r', '.pl', '.hs', '.erl', '.ex', '.el', '.jl', '.scala'
+  ];
+  const ext = path.extname(fileName).toLowerCase();
+  return supportedExtensions.includes(ext);
+}
+
+async function generateMarkdown(files: string[], rootPath: string): Promise<string> {
+  let markdown = `# Project Export\n\n`;
+
+  // Project statistics
+  markdown += `## Project Statistics\n\n`;
+  markdown += `- Total files: ${files.length}\n`;
+
+  // Folder structure
+  markdown += `\n## Folder Structure\n\n`;
+  markdown += '```\n';
+  markdown += generateFolderStructure(files, rootPath);
+  markdown += '\n```\n';
+
+  // File contents
+  for (const file of files) {
+    const relativePath = path.relative(rootPath, file);
+    const fileName = path.basename(file);
+    markdown += `\n### ${relativePath}\n\n`;
+
+    if (isSupportedFile(fileName)) {
+      const code = fs.readFileSync(file, 'utf8');
+      const ext = path.extname(file).substring(1);
+      markdown += '```' + ext + '\n';
+      markdown += code;
+      markdown += '\n```\n';
+    } else {
+      markdown += `*(Unsupported file type)*\n`;
+    }
+  }
+
+  return markdown;
+}
+
+function generateFolderStructure(files: string[], rootPath: string): string {
+  const tree: any = {};
+  files.forEach(file => {
+    const relativePath = path.relative(rootPath, file);
+    const parts = relativePath.split(path.sep);
+    let current = tree;
+    for (const part of parts) {
+      if (!current[part]) {
+        current[part] = {};
+      }
+      current = current[part];
+    }
+  });
+
+  function printTree(node: any, prefix = ''): string {
+    let result = '';
+    for (const key in node) {
+      result += `${prefix}${key}\n`;
+      result += printTree(node[key], prefix + '  ');
+    }
+    return result;
+  }
+
+  return printTree(tree);
+}
+
+function saveMarkdownFile(content: string) {
+  const options: vscode.SaveDialogOptions = {
+    saveLabel: 'Save Markdown File',
+    filters: {
+      'Markdown Files': ['md']
+    }
+  };
+
+  vscode.window.showSaveDialog(options).then(fileUri => {
+    if (fileUri) {
+      fs.writeFile(fileUri.fsPath, content, (err: NodeJS.ErrnoException | null) => {
+        if (err) {
+          vscode.window.showErrorMessage('Error saving file.');
+        } else {
+          vscode.window.showInformationMessage('Markdown file saved successfully.');
+        }
+      });
+    }
+  });
+}
+
 export function deactivate() {}

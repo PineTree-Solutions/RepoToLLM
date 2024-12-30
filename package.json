@@ -20,8 +20,12 @@
   "contributes": {
     "commands": [
       {
-        "command": "repotollm.repoToLLM",
-        "title": "Repo To LLM"
+        "command": "repotollm.exportAll",
+        "title": "Export All to Markdown"
+      },
+      {
+        "command": "repotollm.exportSelected",
+        "title": "Export Selected to Markdown"
       }
     ]
   },
