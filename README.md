@@ -1,6 +1,6 @@
 # RepoToLLM
 
-RepoToLLM is a Visual Studio Code extension designed specifically for Python projects to help you export your repository structure and code snippets into a Markdown file that an LLM (Large Language Model) can easily understand. It automates the creation of documentation for your repository, making it easier to integrate your codebase with AI tools like ChatGPT, Claude, Gemini, and more.
+A Visual Studio Code extension designed specifically for Python projects to help you export your repository structure and code snippets into a Markdown file that an LLM (Large Language Model) can easily understand. It automates the creation of documentation for your repository, making it easier to integrate your codebase with AI tools like ChatGPT, Claude, Gemini, and more.
 
 ---
 
@@ -19,15 +19,18 @@ RepoToLLM is a Visual Studio Code extension designed specifically for Python pro
 
 ## Features
 
-### 1. Export Repository Structure
+### Export Repository Structure
+
 - Automatically generates the directory structure of your repository, skipping unnecessary files and folders based on `.gitignore` and common exclusions.
 
-### 2. Generate Markdown Documentation
+### Generate Markdown Documentation
+
 - Creates a `REPO_TO_LLM.md` file in your repository root with:
   - **Repo Structure**: A clear hierarchical structure of the repository.
   - **Repo Code**: Code snippets formatted in Markdown for easy readability by LLMs.
 
-### 3. Enhance Development with AI
+### Enhance Development with AI
+
 - The generated Markdown file is optimized for use with LLMs, which understand Markdown better, leading to improved context comprehension and faster responses.
 - Copy and paste the Markdown file into any LLM tool to:
   - Get quick insights into your repository.
@@ -38,10 +41,7 @@ RepoToLLM is a Visual Studio Code extension designed specifically for Python pro
 
 ## Installation
 
-1. Install the extension from the VS Code Marketplace or clone this repository.
-2. Open the command palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on macOS) and run `Install from VSIX` if you have a local copy of the extension.
-
----
+### Install the extension from the VS Code Marketplace (RepoToLLM)
 
 ## Usage
 
@@ -71,10 +71,6 @@ This extension does not introduce additional settings.
 
 ## Release Notes
 
-### 0.0.1
-- Initial release of RepoToLLM.
-- Export repository structure and selected code snippets to a Markdown file.
-
 ---
 
 ## Contributing
@@ -94,4 +90,3 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 For questions, feedback, or support, please reach out via the [GitHub repository](https://github.com/PineTree-Solutions/RepoToLLM).
 
 **Enjoy using RepoToLLM to bridge the gap between your codebase and AI workflows!**
-
