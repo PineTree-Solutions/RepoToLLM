@@ -4,7 +4,7 @@ import * as path from 'path';
 import ignore, { Ignore } from 'ignore';
 
 export function activate(context: vscode.ExtensionContext) {
-  let exportAll = vscode.commands.registerCommand('repotollm.repoAll', () => {
+  let exportAll = vscode.commands.registerCommand('repotollm.exportAll', () => {
     exportCodebase();
   });
 

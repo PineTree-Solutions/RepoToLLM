@@ -11,7 +11,6 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
   "main": "./dist/extension.js",
   "repository": {
     "type": "git",
