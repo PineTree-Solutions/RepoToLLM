@@ -148,6 +148,7 @@ function createIgnoreInstance(rootDir: string): Ignore {
     "*.pyc",
     "__pycache__/",
     "*.md",
+    "*.next*"
   ]);
   return ig;
 }
