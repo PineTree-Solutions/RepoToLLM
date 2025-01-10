@@ -4,106 +4,113 @@ import * as path from "path";
 import ignore, { Ignore } from "ignore";
 
 export function activate(context: vscode.ExtensionContext) {
-  let exportAll = vscode.commands.registerCommand("repotollm.exportAll", () => {
-    exportCodebase();
-  });
-
-  let exportSelected = vscode.commands.registerCommand(
+  const exportAllCommand = vscode.commands.registerCommand(
+    "repotollm.exportAll",
+    handleExportAllCommand
+  );
+  const exportSelectedCommand = vscode.commands.registerCommand(
     "repotollm.exportSelected",
-    (uri: vscode.Uri, uris: vscode.Uri[]) => {
-      const selectedUris = uris && uris.length > 0 ? uris : [uri];
-      exportSelectedFiles(selectedUris);
-    }
+    handleExportSelectedCommand
   );
 
-  context.subscriptions.push(exportAll);
-  context.subscriptions.push(exportSelected);
+  context.subscriptions.push(exportAllCommand);
+  context.subscriptions.push(exportSelectedCommand);
 }
 
-async function exportCodebase() {
+async function handleExportAllCommand() {
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (!workspaceFolders) {
-    vscode.window.showErrorMessage("No workspace folder open.");
+    vscode.window.showErrorMessage("No workspace folder is currently open.");
     return;
   }
-  const rootPath = workspaceFolders[0].uri.fsPath;
 
-  const files = await getAllFiles(rootPath);
-  const markdownContent = await generateMarkdown(files, rootPath);
-  saveMarkdownFile(markdownContent);
+  const rootFolderPath = workspaceFolders[0].uri.fsPath;
+  const allFiles = await fetchAllFiles(rootFolderPath);
+  const markdownContent = await generateMarkdownContent(
+    allFiles,
+    rootFolderPath
+  );
+  saveMarkdownToFile(markdownContent);
 }
 
-async function exportSelectedFiles(uris: vscode.Uri[]) {
-  const files = await getFilesFromUris(uris);
-  if (files.length === 0) {
-    vscode.window.showErrorMessage("No files to export.");
+async function handleExportSelectedCommand(
+  uri: vscode.Uri,
+  selectedUris: vscode.Uri[]
+) {
+  const urisToExport =
+    selectedUris && selectedUris.length > 0 ? selectedUris : [uri];
+  const selectedFiles = await fetchFilesFromUris(urisToExport);
+
+  if (selectedFiles.length === 0) {
+    vscode.window.showErrorMessage("No files selected for export.");
     return;
   }
-  const rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
-  const markdownContent = await generateMarkdown(files, rootPath);
-  saveMarkdownFile(markdownContent);
+
+  const rootFolderPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
+  const markdownContent = await generateMarkdownContent(
+    selectedFiles,
+    rootFolderPath
+  );
+  saveMarkdownToFile(markdownContent);
 }
 
-async function getAllFiles(dir: string): Promise<string[]> {
-  const ig = createIgnoreInstance(dir);
-  const files: string[] = [];
+async function fetchAllFiles(directoryPath: string): Promise<string[]> {
+  const ignoreInstance = createIgnoreInstance(directoryPath);
+  const allFiles: string[] = [];
 
-  async function traverse(currentDir: string) {
-    const entries = await fs.promises.readdir(currentDir, {
+  async function traverseDirectory(currentPath: string) {
+    const directoryEntries = await fs.promises.readdir(currentPath, {
       withFileTypes: true,
     });
-    for (const entry of entries) {
-      const fullPath = path.join(currentDir, entry.name);
-      const relativePath = path.relative(dir, fullPath);
 
-      if (ig.ignores(relativePath) || isLargeFile(entry.name)) {
+    for (const entry of directoryEntries) {
+      const entryFullPath = path.join(currentPath, entry.name);
+      const relativePath = path.relative(directoryPath, entryFullPath);
+
+      if (ignoreInstance.ignores(relativePath) || isFileLarge(entry.name)) {
         continue;
       }
 
       if (entry.isDirectory()) {
-        // Check if directory is ignored
-        if (ig.ignores(relativePath + "/")) {
-          continue;
+        if (!ignoreInstance.ignores(relativePath + "/")) {
+          await traverseDirectory(entryFullPath);
         }
-        await traverse(fullPath);
       } else {
-        files.push(fullPath);
+        allFiles.push(entryFullPath);
       }
     }
   }
 
-  await traverse(dir);
-  return files;
+  await traverseDirectory(directoryPath);
+  return allFiles;
 }
 
-async function getFilesFromUris(uris: vscode.Uri[]): Promise<string[]> {
-  const files: string[] = [];
-  const rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
-  const ig = createIgnoreInstance(rootPath);
+async function fetchFilesFromUris(uris: vscode.Uri[]): Promise<string[]> {
+  const filesToExport: string[] = [];
+  const rootFolderPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
+  const ignoreInstance = createIgnoreInstance(rootFolderPath);
 
-  async function processUri(currentUri: vscode.Uri) {
-    const stat = await vscode.workspace.fs.stat(currentUri);
-    const relativePath = vscode.workspace.asRelativePath(currentUri);
+  async function processUri(fileUri: vscode.Uri) {
+    const fileStat = await vscode.workspace.fs.stat(fileUri);
+    const relativeFilePath = vscode.workspace.asRelativePath(fileUri);
 
     if (
-      ig.ignores(relativePath) ||
-      isLargeFile(path.basename(currentUri.fsPath))
+      ignoreInstance.ignores(relativeFilePath) ||
+      isFileLarge(path.basename(fileUri.fsPath))
     ) {
       return;
     }
 
-    if (stat.type === vscode.FileType.Directory) {
-      // Check if directory is ignored
-      if (ig.ignores(relativePath + "/")) {
-        return;
+    if (fileStat.type === vscode.FileType.Directory) {
+      if (!ignoreInstance.ignores(relativeFilePath + "/")) {
+        const childEntries = await vscode.workspace.fs.readDirectory(fileUri);
+        for (const [childName] of childEntries) {
+          const childUri = vscode.Uri.joinPath(fileUri, childName);
+          await processUri(childUri);
+        }
       }
-      const entries = await vscode.workspace.fs.readDirectory(currentUri);
-      for (const [name, fileType] of entries) {
-        const childUri = vscode.Uri.joinPath(currentUri, name);
-        await processUri(childUri);
-      }
-    } else if (stat.type === vscode.FileType.File) {
-      files.push(currentUri.fsPath);
+    } else {
+      filesToExport.push(fileUri.fsPath);
     }
   }
 
@@ -111,18 +118,19 @@ async function getFilesFromUris(uris: vscode.Uri[]): Promise<string[]> {
     await processUri(uri);
   }
 
-  return files;
+  return filesToExport;
 }
 
-function createIgnoreInstance(rootDir: string): Ignore {
-  const ig = ignore();
-  const gitignorePath = path.join(rootDir, ".gitignore");
-  if (fs.existsSync(gitignorePath)) {
-    const gitignoreContent = fs.readFileSync(gitignorePath, "utf8");
-    ig.add(gitignoreContent);
+function createIgnoreInstance(rootPath: string): Ignore {
+  const ignoreInstance = ignore();
+  const gitignoreFilePath = path.join(rootPath, ".gitignore");
+
+  if (fs.existsSync(gitignoreFilePath)) {
+    const gitignoreContent = fs.readFileSync(gitignoreFilePath, "utf8");
+    ignoreInstance.add(gitignoreContent);
   }
-  // Add default ignored directories and files
-  ig.add([
+
+  ignoreInstance.add([
     "node_modules/",
     "build/",
     "out/",
@@ -147,18 +155,96 @@ function createIgnoreInstance(rootDir: string): Ignore {
     "*.class",
     "*.pyc",
     "__pycache__/",
-    "*.md",
-    "*.next*"
+    "*.next*",
   ]);
-  return ig;
+
+  return ignoreInstance;
 }
 
-function isLargeFile(fileName: string): boolean {
-  const largeFiles = ["package-lock.json", "yarn.lock"];
-  return largeFiles.includes(fileName);
+function isFileLarge(fileName: string): boolean {
+  const largeFilesList = ["package-lock.json", "yarn.lock"];
+  return largeFilesList.includes(fileName);
 }
 
-function isSupportedFile(fileName: string): boolean {
+async function generateMarkdownContent(
+  files: string[],
+  rootPath: string
+): Promise<string> {
+  let markdownOutput = `# Project Export\n\n`;
+
+  markdownOutput += `\n## Folder Structure\n\n`;
+  markdownOutput += "``\n";
+  markdownOutput += generateFolderTree(files, rootPath);
+  markdownOutput += "\n``\n";
+
+  for (const file of files) {
+    const relativePath = path.relative(rootPath, file);
+    const fileName = path.basename(file);
+
+    markdownOutput += `\n### ${relativePath}\n\n`;
+    if (isSupportedFileType(fileName)) {
+      const fileContent = fs.readFileSync(file, "utf8");
+      const fileExtension = path.extname(file).substring(1);
+      markdownOutput += "```" + fileExtension + "\n";
+      markdownOutput += fileContent;
+      markdownOutput += "\n```\n";
+    } else {
+      markdownOutput += "*(Unsupported file type)*\n";
+    }
+  }
+
+  return markdownOutput;
+}
+
+function generateFolderTree(files: string[], rootPath: string): string {
+  const tree: any = {};
+  files.forEach((file) => {
+    const relativePath = path.relative(rootPath, file);
+    const pathParts = relativePath.split(path.sep);
+    let currentNode = tree;
+
+    for (const part of pathParts) {
+      if (!currentNode[part]) {
+        currentNode[part] = {};
+      }
+      currentNode = currentNode[part];
+    }
+  });
+
+  function buildTreeStructure(node: any, prefix = ""): string {
+    let result = "";
+    for (const key in node) {
+      result += `${prefix}${key}\n`;
+      result += buildTreeStructure(node[key], prefix + "  ");
+    }
+    return result;
+  }
+
+  return buildTreeStructure(tree);
+}
+
+function saveMarkdownToFile(content: string) {
+  const saveOptions: vscode.SaveDialogOptions = {
+    saveLabel: "Save Markdown File",
+    filters: { "Markdown Files": ["md"] },
+  };
+
+  vscode.window.showSaveDialog(saveOptions).then((fileUri) => {
+    if (fileUri) {
+      fs.writeFile(fileUri.fsPath, content, (error) => {
+        if (error) {
+          vscode.window.showErrorMessage("Failed to save the Markdown file.");
+        } else {
+          vscode.window.showInformationMessage(
+            "Markdown file saved successfully."
+          );
+        }
+      });
+    }
+  });
+}
+
+function isSupportedFileType(fileName: string): boolean {
   const supportedExtensions = [
     ".js",
     ".jsx",
@@ -199,93 +285,7 @@ function isSupportedFile(fileName: string): boolean {
     ".jl",
     ".scala",
   ];
-  const ext = path.extname(fileName).toLowerCase();
-  return supportedExtensions.includes(ext);
-}
-
-async function generateMarkdown(
-  files: string[],
-  rootPath: string
-): Promise<string> {
-  let markdown = `# Project Export\n\n`;
-
-  // Folder structure
-  markdown += `\n## Folder Structure\n\n`;
-  markdown += "```\n";
-  markdown += generateFolderStructure(files, rootPath);
-  markdown += "\n```\n";
-
-  // File contents
-  for (const file of files) {
-    const relativePath = path.relative(rootPath, file);
-    const fileName = path.basename(file);
-    markdown += `\n### ${relativePath}\n\n`;
-
-    if (isSupportedFile(fileName)) {
-      const code = fs.readFileSync(file, "utf8");
-      const ext = path.extname(file).substring(1);
-      markdown += "```" + ext + "\n";
-      markdown += code;
-      markdown += "\n```\n";
-    } else {
-      markdown += `*(Unsupported file type)*\n`;
-    }
-  }
-
-  return markdown;
-}
-
-function generateFolderStructure(files: string[], rootPath: string): string {
-  const tree: any = {};
-  files.forEach((file) => {
-    const relativePath = path.relative(rootPath, file);
-    const parts = relativePath.split(path.sep);
-    let current = tree;
-    for (const part of parts) {
-      if (!current[part]) {
-        current[part] = {};
-      }
-      current = current[part];
-    }
-  });
-
-  function printTree(node: any, prefix = ""): string {
-    let result = "";
-    for (const key in node) {
-      result += `${prefix}${key}\n`;
-      result += printTree(node[key], prefix + "  ");
-    }
-    return result;
-  }
-
-  return printTree(tree);
-}
-
-function saveMarkdownFile(content: string) {
-  const options: vscode.SaveDialogOptions = {
-    saveLabel: "Save Markdown File",
-    filters: {
-      "Markdown Files": ["md"],
-    },
-  };
-
-  vscode.window.showSaveDialog(options).then((fileUri) => {
-    if (fileUri) {
-      fs.writeFile(
-        fileUri.fsPath,
-        content,
-        (err: NodeJS.ErrnoException | null) => {
-          if (err) {
-            vscode.window.showErrorMessage("Error saving file.");
-          } else {
-            vscode.window.showInformationMessage(
-              "Markdown file saved successfully."
-            );
-          }
-        }
-      );
-    }
-  });
+  return supportedExtensions.includes(path.extname(fileName).toLowerCase());
 }
 
 export function deactivate() {}
