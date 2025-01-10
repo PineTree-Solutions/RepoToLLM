@@ -1,38 +1,32 @@
 # RepoToLLM (Export Repo To Markdown)
 
-Export Repository to a single markdown file.
-Copy paste the file once generated into LLMs like ChatGPT, Claude, Gemini, or any other AI tool. They can easily understand it and help you develop faster.
-The markdown file contains:
+Export your repository to a single, well-structured Markdown file. Once generated, you can easily copy and paste the file into LLMs like ChatGPT, Claude, Gemini, or any other AI tool to enhance your productivity and streamline your development process.
 
-- A detailed repository structure overview.
-- A list of all files with their respective paths.
-- Complete code content for each file.
+The generated Markdown file includes:
+
+- A detailed overview of your project’s folder structure.
+- A list of files with their respective paths.
+- Complete code content for each supported file type.
 
 ---
 
 ## Usage
 
-1. Open your Python project in VS Code.
-2. Run the command `Repo To LLM` from the command palette.
-3. The extension generates a `REPO_TO_LLM.md` file in the root of your repository.
-4. Copy and paste the content from the `REPO_TO_LLM.md` file into LLMs like ChatGPT, Claude, or Gemini to enhance development:
-   - Copy the content of the file and paste it into any LLM provider (ChatGPT, Claude, Gemini...).
-   - Once you paste the code, ask any question about it.
-   - Develop faster and more efficiently.
-   - Fix bugs faster.
-   - Share your repository overview with team members.
+1. Open your project in VS Code.
+2. Run the command `Export All to Markdown` from the command palette to export the entire project.
+3. Alternatively, right-click on a specific folder or file and select `Export Selected to Markdown` to export only selected files.
+4. Choose where to save the generated Markdown file when prompted.
+5. Copy and paste the content from the generated file into your preferred LLM tool (ChatGPT, Claude, Gemini, etc.) to get insights, fix bugs, or collaborate with your team.
 
 ---
 
 ## Benefits
 
-- **Copy and Paste Friendly**: The generated Markdown file can be directly copied and pasted into tools like ChatGPT, Claude, Gemini, or any other LLM to easily develop and enhance workflows.
-- **Optimized for AI**: Markdown formatting ensures that LLMs can parse and understand your repository more effectively.
-- **Provide Context When Developing With AI**: Use the markdown generated to provide context to LLMS like ChatGPT, Claude, Gemini or other LLM providers when developing.
-- **Convert Code to LLM-Understandable Text**: Streamline your workflow by transforming your codebase into an LLM-ingestible format.
-- **Code to GPT**: Quickly prepare your code and repository structure for tools like GPT-based models, enabling faster AI-driven development.
-- **Ingest Code to LLM**: Simplify the process of making your repository accessible to AI tools.
-- **Boost Productivity**: A powerful tool to make your development process faster and more efficient.
+- **Copy and Paste Friendly**: The generated Markdown file can be directly copied and pasted into LLMs to enhance workflows.
+- **Optimized for AI**: Markdown formatting ensures that LLMs can parse and understand your repository effectively.
+- **Provide Context When Developing With AI**: Use the generated Markdown file to give AI tools better context when working on your project.
+- **Streamlined Workflow**: Convert your codebase into an LLM-friendly format to speed up development.
+- **Code to GPT**: Quickly prepare your code and repository structure for GPT-based models to improve productivity.
 
 ---
 
@@ -40,27 +34,60 @@ The markdown file contains:
 
 ### Export Repository Structure
 
-- Automatically generates the directory structure of your repository, skipping unnecessary files and folders based on `.gitignore` and common exclusions.
+- Automatically generates the directory structure of your repository.
+- Skips unnecessary files and folders based on `.gitignore` and common exclusions.
 
 ### Generate Markdown Documentation
 
-- Creates a `REPO_TO_LLM.md` file in your repository root with:
-  - **Repo Structure**: A clear hierarchical structure of the repository.
-  - **Repo Code**: Code snippets formatted in Markdown for easy readability by LLMs.
+- Creates a detailed Markdown file with:
+  - **Folder Structure**: A clear, hierarchical view of your project’s structure.
+  - **Code Content**: Code snippets formatted in Markdown for better readability by LLMs.
+  - **File Types**: Only exports supported file types to ensure optimal output.
 
 ### Enhance Development with AI
 
-- The generated Markdown file is optimized for use with LLMs, which understand Markdown better, leading to improved context comprehension and faster responses.
-- Copy and paste the Markdown file into any LLM tool to:
+- The Markdown file is optimized for use with LLMs, allowing faster responses and better insights.
+- Use the file to:
   - Get quick insights into your repository.
   - Accelerate development cycles.
-  - Fix bugs faster
+  - Fix bugs faster.
+  - Share project details with your team efficiently.
+
+---
+
+## Supported File Types
+
+The extension exports code content for the following file types:
+
+- `.js`, `.jsx`, `.ts`, `.tsx`
+- `.html`, `.css`, `.scss`
+- `.json`, `.md`, `.txt`
+- `.py`, `.java`, `.c`, `.cpp`
+- `.cs`, `.rb`, `.go`, `.php`
+- `.sh`, `.xml`, `.yaml`, `.yml`
+- `.ini`, `.bat`, `.sql`, `.rs`
+- `.swift`, `.kt`, `.dart`, `.lua`
+- `.r`, `.pl`, `.hs`, `.erl`, `.ex`, `.el`, `.jl`, `.scala`
+
+Unsupported file types will be marked as such in the generated Markdown file.
 
 ---
 
 ## Installation
 
-Install the extension from the VS Code Marketplace (RepoToLLM)
+Install the extension from the VS Code Marketplace:
+
+- Search for `RepoToLLM`.
+- Click `Install` to add the extension to your VS Code environment.
+
+---
+
+## Commands
+
+| Command                       | Description                                          |
+| ----------------------------- | ---------------------------------------------------- |
+| `Export All to Markdown`      | Export the entire repository to a Markdown file.     |
+| `Export Selected to Markdown` | Export selected files or folders to a Markdown file. |
 
 ---
 
@@ -71,6 +98,13 @@ This extension does not introduce additional settings.
 ---
 
 ## Release Notes
+
+### Version 0.0.6
+
+- Added support for selective export of files and folders.
+- Optimized `.gitignore` handling.
+- Improved Markdown formatting and file structure generation.
+- Added file type filtering for large files and unsupported formats.
 
 ---
 
