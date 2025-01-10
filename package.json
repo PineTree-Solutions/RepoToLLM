@@ -1,7 +1,7 @@
 {
   "name": "repotollm",
   "displayName": "RepoToLLM",
-  "description": "Export project/reposity code into Markdown with a single command, ready for easy copy-paste into ChatGPT, Claude, or other LLMs, boosting productivity and simplifying AI-driven development workflows.",
+  "description": "Export project/repository code into Markdown with a single command, ready for easy copy-paste into ChatGPT, Claude, or other LLMs, boosting productivity and simplifying AI-driven development workflows.",
   "version": "0.0.6",
   "publisher": "PineTree-Solutions",
   "icon": "icon.png",
@@ -12,6 +12,10 @@
     "Other"
   ],
   "main": "./dist/extension.js",
+  "activationEvents": [
+    "onCommand:repotollm.exportAll",
+    "onCommand:repotollm.exportSelected"
+  ],
   "repository": {
     "type": "git",
     "url": "git@github.com:PineTree-Solutions/RepoToLLM.git"
